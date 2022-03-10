@@ -1,0 +1,3 @@
+lxml
+docx-mailmerge
+docx2pdf
