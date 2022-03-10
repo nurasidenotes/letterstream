@@ -3,16 +3,19 @@
 # 3. Save PDF in project specific folder.  -- CHECK
 # 4. Create lines in csv sheet to mimic API example. -- CHECK
 # 5. Save csv in same folder as pdfs. -- CHECK
-# 6. Zip folder.
+# 6. Zip folder. -- CHECK
 # 7. Upload to letterstream/interact
 
 from __future__ import print_function
+import pathlib
+import zipfile
 from mailmerge import MailMerge
 from datetime import date
 from docx2pdf import convert
 
 import csv
 import os
+from zipfile import ZIP_DEFLATED, ZipFile
 from pathlib import Path
 
 from itertools import count
@@ -43,6 +46,27 @@ if not os.path.exists(docx_folder_name):
 if not os.path.exists(folder_name):
     os.mkdir(folder_name)
 
+#creates variable counter that saves with co as key to shelf "unique_id"
+id_count = ''
+s_key = f"{initial_stem}"
+order_num = ''
+s_order_key = f'{initial_stem}_order'
+order_count = 1
+
+s = shelve.open("unique_id")
+
+if not s.get(s_key):
+    id_count = 1
+elif s.get(s_key) is not None:
+    id_count = s.get(s_key)
+
+if not s.get(s_order_key):
+    order_num = 1
+elif s.get(s_order_key) is not None:
+    order_num = s.get(s_order_key)+1
+
+s.close()
+
 # creates output header list
 output_csv_header = []
 
@@ -52,7 +76,7 @@ with open('Batch_Template.csv', newline='') as output_csv:
    output_csv_header = output_reader.fieldnames
         
 # creates output csv variable object
-output_csv = f"{folder_name}\LetterStream_Batch_{company_name}_{current_date}.csv"
+output_csv = f"{folder_name}\{company_name}_Batch{order_num:0>3}_{current_date}.csv"
 
 
 # creates batch dictionary for csv output
@@ -122,19 +146,6 @@ batch_column_dict.update({
     'Return Envelope (Y|N(default))': 'N'
 })
 
-#creates variable counter that saves with co as key to shelf "unique_id"
-id_count = ''
-s_key = f"{initial_stem}"
-
-s = shelve.open("unique_id")
-
-if not s.get(s_key):
-    id_count = 1
-elif s.get(s_key) is not None:
-    id_count = s.get(s_key)
-
-s.close()
-
 # create function that updates output csv dict with variables in with
 def generate_batch_row():
     batch_column_dict.update({
@@ -172,7 +183,7 @@ with open(csv_file, newline='') as csvfile, open(output_csv, 'w', encoding='UTF8
             state_index = headers.index(' Address 1 State')
             zip_index = headers.index(' Address 1 Zip')
             doc_id = f"{current_date}_{initial_stem}_{id_count:0>4}"
-            pdf_name = f'{company_name}_{row[last_name_index]}, {row[first_name_index]}_{current_date}.pdf'
+            pdf_name = f'{row[last_name_index]}, {row[first_name_index]}_{order_count:0>3}.pdf'
             generate_batch_row()
             csvwriter.writerow(batch_column_dict.copy())
             document = MailMerge(template)
@@ -190,24 +201,50 @@ with open(csv_file, newline='') as csvfile, open(output_csv, 'w', encoding='UTF8
                 Contact_Email=co_email
             )
             id_count += 1
-        document.write(f"{docx_folder_name}\{company_name}_{row[last_name_index]}, {row[first_name_index]}_{current_date}.docx")
+        document.write(f"{docx_folder_name}\{row[last_name_index]}, {row[first_name_index]}_{order_count:0>3}.docx")
+        order_count += 1
              # directory path only works on windows; change for mac
     
     # docx2pdf convert folder of docx to other folder of pdf
     convert(f"{docx_folder_name}/",f"{folder_name}/")
 
 # outputs last id_count number to dict that saves to shelf
-current_file_count = {f"{initial_stem}":id_count}
+current_file_count = {s_key:id_count}
+current_order_num = {s_order_key:order_num}
 s=shelve.open("unique_id")
 s.update(current_file_count)
+s.update(current_order_num)
 s.close()
 
-# #  clears current company's letterstream id_count
-# s=shelve.open("unique_id")
-# s.pop(s_key)
-# s.close()
+# #  clears current company's letterstream id_count, if requested
+clear_shelf = input(f'Clear {company_name} LetterStream count? y/n: ')
+if clear_shelf == 'y':
+    s=shelve.open("unique_id")
+    s.pop(s_key)
+    s.close()
+else:
+    pass
 
-# ToDo Zip folder
+# #  clears current company's letterstream id_count, if requested
+clear_shelf_order = input(f'Clear {company_name} order count? y/n: ')
+if clear_shelf_order == 'y':
+    s=shelve.open("unique_id")
+    s.pop(s_order_key)
+    s.close()
+else:
+    pass
+
+# zips folder
+zip_file = f'{folder_name}.zip'
+zip_directory = pathlib.Path(f'{folder_name}/')
+
+with zipfile.ZipFile(zip_file, 'w', ZIP_DEFLATED, allowZip64=True) as z:
+    for f in zip_directory.iterdir():
+        z.write(f, arcname=f.name,)
+
+
+
+
 # ToDo Upload zipped folder to LetterStream API/server 
 # ToDo Create loop to run program and go through set number of csv files?\
 #       \program that will loop through files runs this one?
