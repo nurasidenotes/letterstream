@@ -11,6 +11,7 @@ import pathlib
 import zipfile
 from mailmerge import MailMerge
 from datetime import date
+import time
 from docx2pdf import convert
 
 import csv
@@ -21,6 +22,10 @@ from pathlib import Path
 from itertools import count
 import pickle
 import shelve
+import requests
+import base64
+import hashlib
+import sys
 
 template = "LetterForwardingTemplate.docx"
         
@@ -151,8 +156,7 @@ def generate_batch_row():
     batch_column_dict.update({
         'UniqueDocId': f'{doc_id}',
         'PDFFileName': f'{pdf_name}',
-        'RecipientName1': f'{row[first_name_index]}',
-        'RecipientName2': f'{row[last_name_index]}',
+        'RecipientName1': f'{row[first_name_index]} {row[last_name_index]}',
         'RecipientAddr1': f'{row[address_index]}',
         'RecipientAddr2': None,
         'RecipientCity': f'{row[city_index]}',
@@ -182,8 +186,8 @@ with open(csv_file, newline='') as csvfile, open(output_csv, 'w', encoding='UTF8
             city_index = headers.index(' Address 1 City')
             state_index = headers.index(' Address 1 State')
             zip_index = headers.index(' Address 1 Zip')
-            doc_id = f"{current_date}_{initial_stem}_{id_count:0>4}"
-            pdf_name = f'{row[last_name_index]}, {row[first_name_index]}_{order_count:0>3}.pdf'
+            doc_id = f"{current_date}{initial_stem}{id_count:0>4}"
+            pdf_name = f'{row[last_name_index]}_{row[first_name_index]}_{order_count:0>3}.pdf'
             generate_batch_row()
             csvwriter.writerow(batch_column_dict.copy())
             document = MailMerge(template)
@@ -201,7 +205,7 @@ with open(csv_file, newline='') as csvfile, open(output_csv, 'w', encoding='UTF8
                 Contact_Email=co_email
             )
             id_count += 1
-        document.write(f"{docx_folder_name}\{row[last_name_index]}, {row[first_name_index]}_{order_count:0>3}.docx")
+        document.write(f"{docx_folder_name}\{row[last_name_index]}_{row[first_name_index]}_{order_count:0>3}.docx")
         order_count += 1
              # directory path only works on windows; change for mac
     
@@ -243,68 +247,30 @@ with zipfile.ZipFile(zip_file, 'w', ZIP_DEFLATED, allowZip64=True) as z:
         z.write(f, arcname=f.name,)
 
 
+# LetterStream API id/key:
+## Your API_ID : dN26vwWd
+## Your API_KEY : TP6bKLpVFgqcrL2wrM
 
+# Authenticates letterstream api connection using random variables
 
-# ToDo Upload zipped folder to LetterStream API/server 
-# ToDo Create loop to run program and go through set number of csv files?\
-#       \program that will loop through files runs this one?
-# ToDo Add variable to the csv file input -- select file at beginning of program?
+api_id = 'dN26vwWd'
+api_key = 'TP6bKLpVFgqcrL2wrM'
+unique_id = f'{int(time.time_ns())}'[-18:]
+string_to_hash = (unique_id[-6:] + api_key + unique_id[0:6])
 
+encoded_string = base64.b64encode(string_to_hash.encode('ascii'))
+api_hash = hashlib.md5(encoded_string)
+hash_two = api_hash.hexdigest()
 
+auth_parameters = {
+    'a': api_id,
+    'h': hash_two,
+    't': unique_id,
+    'debug': '3'
+}
 
-# dict to associate field_name_in_merge_template : column_name_in_csv
-# merge_field_lookup = {
-#     'City': ' Address 1 City', 
-#     'Address': ' Address 1', 
-#     'Zip': ' Address 1 Zip', 
-#     'LastName': ' Last Name', 
-#     'State': ' Address 1 State', 
-#     'FirstName': ' First Name'
-# }
-# # Defines function "generate_batch_row" to grab recipient list and fill in csv
-# def generate_batch_row(recipient):
-#     """"
-#                 FirstName=row[first_name_index],
-#                 LastName=row[last_name_index],
-#                 Address=row[address_index],
-#                 City=row[city_index],
-#                 State=row[state_index],
-#                 Zip=row[zip_index],
-#                 Company=co_name,
-#                 Co_Location=co_location,
-#                 Contact=co_contact,
-#                 Contact_Number=co_phone,
-#                 Contact_Email=co_email
-#                 PDFFileName='' 
-#     """
-#     batch_column_dict = {
-#         "UniqueDocId": f"{current_date}_{initial_stem}_{id_count:0>4}",
-#         "PDFFileName": "PDFFileName",
-#         "RecipientName1": None,
-#         "RecipientName2": None,
-#         "RecipientAddr1": None,
-#         "RecipientAddr2": None,
-#         "RecipientCity": None,
-#         "RecipientState": None,
-#         "RecipientZip": None,
-#         "SenderName1": None,
-#         "SenderName2": None,
-#         "SenderAddr1": None,
-#         "SenderAddr2": None,
-#         "SenderCity": None,
-#         "SenderState": None,
-#         "SenderZip": None,
-#         "PageCount": "1",
-#         "MailType (firstclass|certified|postcard|flat)": None,
-#         "CoverSheet (Y|N)": "Y",
-#         "Duplex (Y|N)": "N",
-#         "Ink (B|C)": "B",
-#         "Paper (W(hite-default)|Y(ellow)|LB(light blue)|LG(light green)|O(range)|I(vory)|PERF(orated)": "W",
-#         "Return Envelope (Y|N(default))": "N"
-#     }
-   
+with open(zip_file, 'rb') as fileobj:
+    r = requests.post(url='https://www.letterstream.com/apis/index.php',data=auth_parameters, files={'multi_file': (zip_file, fileobj)})
+    print(r.status_code)
+    print(r.text)
 
-
-
-# ToDo Create loop to run program and go through set number of csv files?\
-#       \program that will loop through files runs this one?
