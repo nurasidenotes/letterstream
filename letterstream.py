@@ -203,6 +203,7 @@ s.update(current_file_count)
 s.close()
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
 # #  clears current company's letterstream id_count
 # s=shelve.open("unique_id")
 # s.pop(s_key)
@@ -273,6 +274,8 @@ s.close()
 # ToDo Create loop to run program and go through set number of csv files?\
 #       \program that will loop through files runs this one?
 =======
+=======
+>>>>>>> Stashed changes
 clear_shelf = input(f'Clear {company_name} LetterStream count? y/n: ')
 if clear_shelf == 'y':
     s=shelve.open("unique_id")
