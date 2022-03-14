@@ -220,7 +220,6 @@ s.update(current_file_count)
 s.update(current_order_num)
 s.close()
 
-# #  clears current company's letterstream id_count, if requested
 clear_shelf = input(f'Clear {company_name} LetterStream count? y/n: ')
 if clear_shelf == 'y':
     s=shelve.open("unique_id")
