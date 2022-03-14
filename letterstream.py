@@ -272,4 +272,3 @@ with open(zip_file, 'rb') as fileobj:
     r = requests.post(url='https://www.letterstream.com/apis/index.php',data=auth_parameters, files={'multi_file': (zip_file, fileobj)})
     print(r.status_code)
     print(r.text)
-
