@@ -3,21 +3,29 @@
 # 3. Save PDF in project specific folder.  -- CHECK
 # 4. Create lines in csv sheet to mimic API example. -- CHECK
 # 5. Save csv in same folder as pdfs. -- CHECK
-# 6. Zip folder.
+# 6. Zip folder. -- CHECK
 # 7. Upload to letterstream/interact
 
 from __future__ import print_function
+import pathlib
+import zipfile
 from mailmerge import MailMerge
 from datetime import date
+import time
 from docx2pdf import convert
 
 import csv
 import os
+from zipfile import ZIP_DEFLATED, ZipFile
 from pathlib import Path
 
 from itertools import count
 import pickle
 import shelve
+import requests
+import base64
+import hashlib
+import sys
 
 template = "LetterForwardingTemplate.docx"
         
@@ -43,6 +51,27 @@ if not os.path.exists(docx_folder_name):
 if not os.path.exists(folder_name):
     os.mkdir(folder_name)
 
+#creates variable counter that saves with co as key to shelf "unique_id"
+id_count = ''
+s_key = f"{initial_stem}"
+order_num = ''
+s_order_key = f'{initial_stem}_order'
+order_count = 1
+
+s = shelve.open("unique_id")
+
+if not s.get(s_key):
+    id_count = 1
+elif s.get(s_key) is not None:
+    id_count = s.get(s_key)
+
+if not s.get(s_order_key):
+    order_num = 1
+elif s.get(s_order_key) is not None:
+    order_num = s.get(s_order_key)+1
+
+s.close()
+
 # creates output header list
 output_csv_header = []
 
@@ -52,7 +81,7 @@ with open('Batch_Template.csv', newline='') as output_csv:
    output_csv_header = output_reader.fieldnames
         
 # creates output csv variable object
-output_csv = f"{folder_name}\LetterStream_Batch_{company_name}_{current_date}.csv"
+output_csv = f"{folder_name}\{company_name}_Batch{order_num:0>3}_{current_date}.csv"
 
 
 # creates batch dictionary for csv output
@@ -122,26 +151,12 @@ batch_column_dict.update({
     'Return Envelope (Y|N(default))': 'N'
 })
 
-#creates variable counter that saves with co as key to shelf "unique_id"
-id_count = ''
-s_key = f"{initial_stem}"
-
-s = shelve.open("unique_id")
-
-if not s.get(s_key):
-    id_count = 1
-elif s.get(s_key) is not None:
-    id_count = s.get(s_key)
-
-s.close()
-
 # create function that updates output csv dict with variables in with
 def generate_batch_row():
     batch_column_dict.update({
         'UniqueDocId': f'{doc_id}',
         'PDFFileName': f'{pdf_name}',
-        'RecipientName1': f'{row[first_name_index]}',
-        'RecipientName2': f'{row[last_name_index]}',
+        'RecipientName1': f'{row[first_name_index]} {row[last_name_index]}',
         'RecipientAddr1': f'{row[address_index]}',
         'RecipientAddr2': None,
         'RecipientCity': f'{row[city_index]}',
@@ -171,8 +186,8 @@ with open(csv_file, newline='') as csvfile, open(output_csv, 'w', encoding='UTF8
             city_index = headers.index(' Address 1 City')
             state_index = headers.index(' Address 1 State')
             zip_index = headers.index(' Address 1 Zip')
-            doc_id = f"{current_date}_{initial_stem}_{id_count:0>4}"
-            pdf_name = f'{company_name}_{row[last_name_index]}, {row[first_name_index]}_{current_date}.pdf'
+            doc_id = f"{current_date}{initial_stem}{id_count:0>4}"
+            pdf_name = f'{row[last_name_index]}_{row[first_name_index]}_{order_count:0>3}.pdf'
             generate_batch_row()
             csvwriter.writerow(batch_column_dict.copy())
             document = MailMerge(template)
@@ -190,92 +205,21 @@ with open(csv_file, newline='') as csvfile, open(output_csv, 'w', encoding='UTF8
                 Contact_Email=co_email
             )
             id_count += 1
-        document.write(f"{docx_folder_name}\{company_name}_{row[last_name_index]}, {row[first_name_index]}_{current_date}.docx")
+        document.write(f"{docx_folder_name}\{row[last_name_index]}_{row[first_name_index]}_{order_count:0>3}.docx")
+        order_count += 1
              # directory path only works on windows; change for mac
     
     # docx2pdf convert folder of docx to other folder of pdf
     convert(f"{docx_folder_name}/",f"{folder_name}/")
 
 # outputs last id_count number to dict that saves to shelf
-current_file_count = {f"{initial_stem}":id_count}
+current_file_count = {s_key:id_count}
+current_order_num = {s_order_key:order_num}
 s=shelve.open("unique_id")
 s.update(current_file_count)
+s.update(current_order_num)
 s.close()
 
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-# #  clears current company's letterstream id_count
-# s=shelve.open("unique_id")
-# s.pop(s_key)
-# s.close()
-
-# ToDo Zip folder
-# ToDo Upload zipped folder to LetterStream API/server 
-# ToDo Create loop to run program and go through set number of csv files?\
-#       \program that will loop through files runs this one?
-# ToDo Add variable to the csv file input -- select file at beginning of program?
-
-
-
-# dict to associate field_name_in_merge_template : column_name_in_csv
-# merge_field_lookup = {
-#     'City': ' Address 1 City', 
-#     'Address': ' Address 1', 
-#     'Zip': ' Address 1 Zip', 
-#     'LastName': ' Last Name', 
-#     'State': ' Address 1 State', 
-#     'FirstName': ' First Name'
-# }
-# # Defines function "generate_batch_row" to grab recipient list and fill in csv
-# def generate_batch_row(recipient):
-#     """"
-#                 FirstName=row[first_name_index],
-#                 LastName=row[last_name_index],
-#                 Address=row[address_index],
-#                 City=row[city_index],
-#                 State=row[state_index],
-#                 Zip=row[zip_index],
-#                 Company=co_name,
-#                 Co_Location=co_location,
-#                 Contact=co_contact,
-#                 Contact_Number=co_phone,
-#                 Contact_Email=co_email
-#                 PDFFileName='' 
-#     """
-#     batch_column_dict = {
-#         "UniqueDocId": f"{current_date}_{initial_stem}_{id_count:0>4}",
-#         "PDFFileName": "PDFFileName",
-#         "RecipientName1": None,
-#         "RecipientName2": None,
-#         "RecipientAddr1": None,
-#         "RecipientAddr2": None,
-#         "RecipientCity": None,
-#         "RecipientState": None,
-#         "RecipientZip": None,
-#         "SenderName1": None,
-#         "SenderName2": None,
-#         "SenderAddr1": None,
-#         "SenderAddr2": None,
-#         "SenderCity": None,
-#         "SenderState": None,
-#         "SenderZip": None,
-#         "PageCount": "1",
-#         "MailType (firstclass|certified|postcard|flat)": None,
-#         "CoverSheet (Y|N)": "Y",
-#         "Duplex (Y|N)": "N",
-#         "Ink (B|C)": "B",
-#         "Paper (W(hite-default)|Y(ellow)|LB(light blue)|LG(light green)|O(range)|I(vory)|PERF(orated)": "W",
-#         "Return Envelope (Y|N(default))": "N"
-#     }
-   
-
-
-
-# ToDo Create loop to run program and go through set number of csv files?\
-#       \program that will loop through files runs this one?
-=======
-=======
->>>>>>> Stashed changes
 clear_shelf = input(f'Clear {company_name} LetterStream count? y/n: ')
 if clear_shelf == 'y':
     s=shelve.open("unique_id")
@@ -329,4 +273,3 @@ with open(zip_file, 'rb') as fileobj:
     print(r.status_code)
     print(r.text)
 
->>>>>>> Stashed changes
