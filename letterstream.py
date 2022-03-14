@@ -202,6 +202,7 @@ s=shelve.open("unique_id")
 s.update(current_file_count)
 s.close()
 
+<<<<<<< Updated upstream
 # #  clears current company's letterstream id_count
 # s=shelve.open("unique_id")
 # s.pop(s_key)
@@ -271,3 +272,58 @@ s.close()
 
 # ToDo Create loop to run program and go through set number of csv files?\
 #       \program that will loop through files runs this one?
+=======
+clear_shelf = input(f'Clear {company_name} LetterStream count? y/n: ')
+if clear_shelf == 'y':
+    s=shelve.open("unique_id")
+    s.pop(s_key)
+    s.close()
+else:
+    pass
+
+# #  clears current company's letterstream id_count, if requested
+clear_shelf_order = input(f'Clear {company_name} order count? y/n: ')
+if clear_shelf_order == 'y':
+    s=shelve.open("unique_id")
+    s.pop(s_order_key)
+    s.close()
+else:
+    pass
+
+# zips folder
+zip_file = f'{folder_name}.zip'
+zip_directory = pathlib.Path(f'{folder_name}/')
+
+with zipfile.ZipFile(zip_file, 'w', ZIP_DEFLATED, allowZip64=True) as z:
+    for f in zip_directory.iterdir():
+        z.write(f, arcname=f.name,)
+
+
+# LetterStream API id/key:
+## Your API_ID : dN26vwWd
+## Your API_KEY : TP6bKLpVFgqcrL2wrM
+
+# Authenticates letterstream api connection using random variables
+
+api_id = 'dN26vwWd'
+api_key = 'TP6bKLpVFgqcrL2wrM'
+unique_id = f'{int(time.time_ns())}'[-18:]
+string_to_hash = (unique_id[-6:] + api_key + unique_id[0:6])
+
+encoded_string = base64.b64encode(string_to_hash.encode('ascii'))
+api_hash = hashlib.md5(encoded_string)
+hash_two = api_hash.hexdigest()
+
+auth_parameters = {
+    'a': api_id,
+    'h': hash_two,
+    't': unique_id,
+    'debug': '3'
+}
+
+with open(zip_file, 'rb') as fileobj:
+    r = requests.post(url='https://www.letterstream.com/apis/index.php',data=auth_parameters, files={'multi_file': (zip_file, fileobj)})
+    print(r.status_code)
+    print(r.text)
+
+>>>>>>> Stashed changes
