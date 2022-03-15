@@ -27,7 +27,7 @@ import sys
 
 import PySimpleGUI as sg
 import os.path
-
+import imwatchingyou
 
 template = "LetterForwardingTemplate.docx"
 
@@ -39,6 +39,8 @@ mt_cert = 'Certified'
 mt_sig = 'Signature'
 mail_type_input = None
 
+## imwatchingyou.show_debugger_window()
+
 file_list = [
     [
         sg.Text("Select CSV"),
@@ -47,49 +49,31 @@ file_list = [
     ],
     [
         sg.Text('Select mailtype:'),
-        sg.DropDown(values=mail_type, default_value=None, key='-SET MAILTYPE-'),
-        sg.Button('Apply', enable_events=True, key='-SET MAIL-'),
+        sg.DropDown(values=mail_type, default_value=None, enable_events=True , key='-SET MAILTYPE-'),
     ],
     [
         sg.Button('Upload to LetterStream', enable_events=True, key='-RUN-'),
         sg.Button('Cancel', enable_events=True, key='-CANCEL-'),
     ]
 ]
-# oneline_progress = [
-#    sg.one_line_progress_meter('Program Progress:',1, 100 )
-#     # one_line_progress_meter( title, 
-# # current_value, 
-# max_value, 
-# args=*<1 or N object>,
-# key = "OK for 1 meter",
-# orientation = "v",
-# bar_color = (None, None),
-# button_color = None,
-# size = (20, 20),
-# border_width = None,
-# grab_anywhere = False,
-# no_titlebar = False,
-# keep_on_top = None,
-# no_button = False)
-#]
-
 progress_window = [
     [
-        sg.Text('Processing ', key='-PROG TEXT-')
+        sg.Text('Processing... ', key='-PROG TEXT-')
     ],
     [
-        
+        sg.Multiline('',size=(50,15), key='-PRINT-', reroute_stdout=True, reroute_stderr=True, reroute_cprint=True)
     ],
     [
-        sg.Button(button_text='Cancel', enable_events=True, key='-IN PROG CANCEL-')
+        sg.Button(button_text='Cancel', enable_events=True, key='-IN PROG CANCEL-'),
+        sg.Button(button_text='Finished', enable_events=True, key='-FINISHED-', visible=False),
     ],
 ]
 upload_window = [
     [
-        sg.Text('LetterStream Upload Respond', size=[40, 1])
+        sg.Text('LetterStream Upload Response:', size=[40, 1])
     ],
     [
-        sg.Output(size=(80, 20))
+        sg.Multiline('', size=(50, 20), key='-LETTERSTREAM-', reroute_stdout=False, reroute_cprint=False, reroute_stderr=False )
     ],
 ]
 
@@ -105,33 +89,33 @@ layout = [
             sg.Column(upload_window, visible = False, key='-CHECKING-'),
         ],
 ]
-
 window = sg.Window('LetterStream API', layout, finalize=True, resizable=True)
 
 # Run the Event Loop
 while True:
     event, values = window.read()
-    if event in (sg.WIN_CLOSED, 'Exit', '-CANCEL-', '-IN PROG CANCEL-'):
+    ## imwatchingyou.refresh_debugger()
+    if event in (sg.WIN_CLOSED, 'Exit', '-CANCEL-', '-IN PROG CANCEL-', '-FINISHED-'):
         break
     # file was selected, set csv in to selected file
     if event == "-CSV IN-":
         csv_file = values["-CSV IN-"]
         continue
-    if event == '-SET MAIL-':
+    if event == '-SET MAILTYPE-':
         mail_type_input = values['-SET MAILTYPE-']
-        print(values['-SET MAILTYPE-'])
         continue
     elif event == '-RUN-':  
         if not csv_file:
-            error('No CSV selected. Please selected batch to run.')
+            sg.popup_error('No CSV selected. Please selected batch to run.')
             break
         if not mail_type_input:
-            error('No mail type selected. Please select mail type before proceeding')
+            sg.popup_error('No mail type selected. Please select mail type before proceeding')
             break
         else:
             window['-START-'].update(visible=False)
             window['-RUNNING-'].update(visible=True)
-            window['-PROG TEXT-'].update('Parsing data')
+            sg.cprint('Parsing CSV data...')
+            ## imwatchingyou.refresh_debugger()
 
             file_stem = csv_file.split('.')[1]
             company_name, current_date = file_stem.split(' - ')[1:3]
@@ -144,6 +128,7 @@ while True:
             # To create variable letter template from Company information
             contact_csv = 'CompanyContacts.csv'
 
+            sg.cprint('Creating Batch Folders')
             # To create directory (file) for word docs batch:
             if not os.path.exists(docx_folder_name):
                 os.mkdir(docx_folder_name)
@@ -152,6 +137,7 @@ while True:
             if not os.path.exists(folder_name):
                 os.mkdir(folder_name)
 
+            sg.cprint('Consolidating previous orders')
             #creates variable counter that saves with co as key to shelf "unique_id"
             id_count = ''
             s_key = f"{initial_stem}"
@@ -175,7 +161,7 @@ while True:
 
             # creates output header list
             output_csv_header = []
-
+            sg.cprint('Assigning static variables')
             # opens output template and pulls headers
             with open('Batch_Template.csv', newline='') as output_csv:
                 output_reader = csv.DictReader(output_csv)
@@ -225,7 +211,8 @@ while True:
                         co_zip = row[headers.index('Zip')]
                         break
             
-
+            ## imwatchingyou.refresh_debugger()
+            sg.cprint('Setting Mail Type')
             # sets mail type for batch
             ## mail_type_input = input("Does the client want First Class, Certified, or Signature?\n")
             if mail_type_input == 'First Class':
@@ -267,7 +254,7 @@ while True:
                 })
                 return
 
-
+            sg.cprint('Parsing data and creating documents:')
             # To merge csv contents with word template, create new docs, add lines to output csv
             with open(csv_file, newline='') as csvfile, open(output_csv, 'w', encoding='UTF8', newline='') as batch_output:
                 csvreader = csv.reader(csvfile)
@@ -292,6 +279,9 @@ while True:
                         zip_index = headers.index(' Address 1 Zip')
                         doc_id = f"{current_date}{initial_stem}{id_count:0>4}"
                         pdf_name = f'{row[last_name_index]}_{row[first_name_index]}_{order_count:0>3}.pdf'
+                        doc_name = f'{row[last_name_index]}_{row[first_name_index]}_{order_count:0>3}.docx'
+                        sg.cprint(f'Creating {doc_name}')
+                        ## imwatchingyou.refresh_debugger()
                         generate_batch_row()
                         csvwriter.writerow(batch_column_dict.copy())
                         document = MailMerge(template)
@@ -309,13 +299,15 @@ while True:
                             Contact_Email=co_email
                         )
                         id_count += 1
-                    document.write(f"{docx_folder_name}\{row[last_name_index]}_{row[first_name_index]}_{order_count:0>3}.docx")
+                    document.write(f"{docx_folder_name}\{doc_name}")
                         # directory path only works on windows; change for mac
                     order_count += 1
                 
                 # docx2pdf convert folder of docx to other folder of pdf
-                
+                sg.cprint('Converting to PDF:')
                 convert(f"{docx_folder_name}/",f"{folder_name}/")
+                sg.cprint('PDF conversion complete.')
+                ## imwatchingyou.refresh_debugger()
 
 
             # outputs last id_count number to dict that saves to shelf
@@ -347,6 +339,8 @@ while True:
             else:
                 pass
             
+            sg.cprint('Zipping folder for upload.')
+            ## imwatchingyou.refresh_debugger()
             # zips folder
             zip_file = f'{folder_name}.zip'
             zip_directory = pathlib.Path(f'{folder_name}/')
@@ -354,8 +348,11 @@ while True:
             with zipfile.ZipFile(zip_file, 'w', ZIP_DEFLATED, allowZip64=True) as z:
                 for f in zip_directory.iterdir():
                     z.write(f, arcname=f.name,)
+            
+            sg.popup_ok('Files ready for upload.')
 
-
+            sg.cprint('Uploading to Letterstream:')
+            ## imwatchingyou.refresh_debugger()
             # LetterStream API id/key:
             ## Your API_ID : dN26vwWd
             ## Your API_KEY : TP6bKLpVFgqcrL2wrM
@@ -380,20 +377,16 @@ while True:
 
             with open(zip_file, 'rb') as fileobj:
                 r = requests.post(url='https://www.letterstream.com/apis/index.php',data=auth_parameters, files={'multi_file': (zip_file, fileobj)})
-                sg.print(r.status_code)
-                if not("AUTHOK" in r.text):
-                    sg.print(f"ERROR on {r.files.mulifile.zipfile}: ")
-                    sg.print(r.text)
-                # sg.print(r.text)
+                print(r.status_code)
+                ## imwatchingyou.refresh_debugger()
+                if "AUTHOK" in r.text:
+                    print(r.text)
+                    sg.popup_ok('Batch upload successful')
+                    window['-FINISHED-'].update(visible=True)
+                elif not ("AUTHOK" in r.text):
+                    sg.popup_error('ERROR during upload')
+                    print(f"ERROR on {zip_file}: ")
+                    print(r.text)
 
-
-
-
-# # show progress bar for pdfs
-# pdf_progress = window.find_element()
-# sg.ProgressBar(100, size=(100, 20), key='-PDF PROGRESS-')
-
-# # Ask user if they want to clear the counts:
-
-# clear_shelf = input(sg.popup_yes_no('Would you like to clear the fCompanys document count?'))
-# clear_shelf_order = input(sg.popup_yes_no('Would you like to clear the fCompanys order count?'))
+## parse r.text to be legible -- json?
+## executable package
