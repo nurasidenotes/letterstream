@@ -121,6 +121,7 @@ while True:
             ## imwatchingyou.refresh_debugger()
 
             file_stem = csv_file.split('.')[1]
+            #file_stem = csv_file.split('.')[0]
             company_name, current_date = file_stem.split(' - ')[1:3]
             docx_folder_name = f"{company_name}_{current_date}_'docx'"
             folder_name = f"{company_name}_{current_date}"
@@ -130,6 +131,8 @@ while True:
 
             # To create variable letter template from Company information
             contact_csv = 'CompanyContacts.csv'
+            # offsite test:
+            # contact_csv = 'CompanyContactsSAMPLE.csv'
 
             sg.cprint('Creating Batch Folders')
             # To create directory (file) for word docs batch:
@@ -172,7 +175,7 @@ while True:
                     
             # creates output csv variable object
             output_csv = f"{folder_name}\{company_name}_Batch{order_num:0>3}_{current_date}.csv"
-
+            #mac output_csv = f"{folder_name}/{company_name}_Batch{order_num:0>3}_{current_date}.csv"
 
             # creates batch dictionary for csv output
             batch_column_dict = dict.fromkeys(output_csv_header , None)
@@ -257,21 +260,24 @@ while True:
                 })
                 return
 
+            with open(csv_file, newline='') as csvnumber:
+                csv_number = csv.reader(csvnumber)
+                data = [row for row in csv_number]
+                total_rows = len(data)
+
             sg.cprint('Parsing data and creating documents:')
             window.refresh()
             # To merge csv contents with word template, create new docs, add lines to output csv
             with open(csv_file, newline='') as csvfile, open(output_csv, 'w', encoding='UTF8', newline='') as batch_output:
                 csvreader = csv.reader(csvfile)
-                csv_number = csv.reader(csvfile)
                 csvwriter = csv.DictWriter(batch_output, fieldnames=output_csv_header)
                 csvwriter.writeheader()
                 headers = []
                 doc_count = 1
                 row_is = 1
-                total_rows = [int() for i in csv_number]
                 for row in csvreader: 
                     row_is += 1
-                    sg.OneLineProgressMeter('Writing: ', row_is, len(total_rows))
+                    sg.OneLineProgressMeter('Writing: ', row_is, total_rows)
                     window.refresh()
                     if not headers:
                         headers = row
@@ -307,7 +313,8 @@ while True:
                         )
                         id_count += 1
                     document.write(f"{docx_folder_name}\{doc_name}")
-                        # directory path only works on windows; change for mac
+                    ##MAC document.write(f"{docx_folder_name}/{doc_name}")
+
                     order_count += 1
                 
                 # docx2pdf convert folder of docx to other folder of pdf
