@@ -2,6 +2,7 @@
 from __future__ import print_function
 from distutils.log import error
 import pathlib
+from sqlite3 import Row
 from tkinter import HORIZONTAL
 from tokenize import Triple
 from turtle import update
@@ -29,7 +30,7 @@ import PySimpleGUI as sg
 import os.path
 import imwatchingyou
 
-template = "LetterForwardingTemplate.docx"
+template = "template_smith_downey.docx"
 
 # First the window layout
 mail_type = ['First Class', 'Certified', 'Signature']
@@ -52,7 +53,7 @@ file_list = [
         sg.DropDown(values=mail_type, default_value=None, enable_events=True , key='-SET MAILTYPE-'),
     ],
     [
-        sg.Button('Upload to LetterStream', enable_events=True, key='-RUN-'),
+        sg.Button('Batch Letters', enable_events=True, key='-RUN-'),
         sg.Button('Cancel', enable_events=True, key='-CANCEL-'),
     ]
 ]
@@ -68,14 +69,6 @@ progress_window = [
         sg.Button(button_text='Finished', enable_events=True, key='-FINISHED-', visible=False),
     ],
 ]
-upload_window = [
-    [
-        sg.Text('LetterStream Upload Response:', size=[40, 1])
-    ],
-    [
-        sg.Multiline('', size=(50, 20), key='-LETTERSTREAM-', reroute_stdout=False, reroute_cprint=False, reroute_stderr=False )
-    ],
-]
 
 # ----- Full layout -----
 layout = [
@@ -83,13 +76,10 @@ layout = [
             sg.Column(file_list, visible=True, key='-START-'),
         ],
         [
-            sg.Column(progress_window, visible = False, key='-RUNNING-'),
-        ],
-        [
-            sg.Column(upload_window, visible = False, key='-CHECKING-'),
+            sg.Column(progress_window, visible=False, key='-RUNNING-'),
         ],
 ]
-window = sg.Window('LetterStream API', layout, finalize=True, resizable=True)
+window = sg.Window('Smith & Downey Letter Forwarding', layout, resizable=True)
 
 # Run the Event Loop
 while True:
@@ -104,17 +94,30 @@ while True:
     if event == '-SET MAILTYPE-':
         mail_type_input = values['-SET MAILTYPE-']
         continue
-    elif event == '-RUN-':  
+    if event == '-RUN-':  
+        window['-RUNNING-'].update(visible = True)
+        window['-START-'].update(visible = False)
+        window.refresh()
         if not csv_file:
-            sg.popup_error('No CSV selected. Please selected batch to run.')
-            break
+            sg.popup_ok_cancel('No CSV selected. Please selected batch to run.')
+            if event == 'Cancel':
+                break
+            if event == 'Ok':
+                window['-START-'].update(visible=True)
+                window['-RUNNING-'].update(visible=False)
+                continue
         if not mail_type_input:
-            sg.popup_error('No mail type selected. Please select mail type before proceeding')
-            break
+            sg.popup_ok_cancel('No mail type selected. Please select mail type before proceeding')
+            if event == 'Cancel':
+                break
+            if event == 'Ok':
+                window['-START-'].update(visible=True)
+                window['-RUNNING-'].update(visible=False)
+                continue
         else:
-            window['-START-'].update(visible=False)
             window['-RUNNING-'].update(visible=True)
             sg.cprint('Parsing CSV data...')
+            window.refresh()
             ## imwatchingyou.refresh_debugger()
 
             file_stem = csv_file.split('.')[1]
@@ -191,28 +194,29 @@ while True:
 
             # set company variables based on contact_csv
             with open(contact_csv, newline='') as csvfile:
-                csvreader = csv.reader(csvfile)
+                contactcsvreader = csv.reader(csvfile)
                 headers = []
-                for row in csvreader: 
+                for crow in contactcsvreader: 
                     if not headers:
-                        headers = row
+                        headers = crow
                         continue
-                    if row[headers.index('Company')] == company_name:
-                        co_name = row[headers.index('Company')]
-                        co_location = row[headers.index('Location')]
-                        co_contact = row[headers.index('Contact')]
-                        co_phone = row[headers.index('Phone')]
-                        co_email = row[headers.index('Email')]
-                        co_return = row[headers.index('Return Contact')]
-                        co_address_01 = row[headers.index('Address 01')]
-                        co_address_02 = row[headers.index('Address 02')]
-                        co_city = row[headers.index('City')]
-                        co_state = row[headers.index('State')]
-                        co_zip = row[headers.index('Zip')]
+                    if crow[headers.index('Company')] == company_name:
+                        co_name = crow[headers.index('Company')]
+                        co_location = crow[headers.index('Location')]
+                        co_contact = crow[headers.index('Contact')]
+                        co_phone = crow[headers.index('Phone')]
+                        co_email = crow[headers.index('Email')]
+                        co_return = crow[headers.index('Return Contact')]
+                        co_address_01 = crow[headers.index('Address 01')]
+                        co_address_02 = crow[headers.index('Address 02')]
+                        co_city = crow[headers.index('City')]
+                        co_state = crow[headers.index('State')]
+                        co_zip = crow[headers.index('Zip')]
                         break
             
             ## imwatchingyou.refresh_debugger()
             sg.cprint('Setting Mail Type')
+            window.refresh()
             # sets mail type for batch
             ## mail_type_input = input("Does the client want First Class, Certified, or Signature?\n")
             if mail_type_input == 'First Class':
@@ -224,20 +228,19 @@ while True:
 
             # sets static company/batch variables to output csv dict
             batch_column_dict.update({
-                'SenderName1': f'{company_name}',
-                'SenderName2': f'Attn: {co_return}',
+                'SenderName1': f'{co_return}',
                 'SenderAddr1': f'{co_address_01}',
                 'SenderAddr2': f'{co_address_02}',
                 'SenderCity': f'{co_city}', 
                 'SenderState': f'{co_state}', 
                 'SenderZip': f'{co_zip}', 
-                'PageCount': '1', 
+                'PageCount': '4', 
                 'MailType (firstclass|certified|postcard|flat)': f'{mail_type_input}', 
                 'CoverSheet (Y|N)': 'Y', 
                 'Duplex (Y|N)': 'N', 
                 'Ink (B|C)': 'B', 
                 'Paper (W(hite-default)|Y(ellow)|LB(light blue)|LG(light green)|O(range)|I(vory)|PERF(orated)': 'W', 
-                'Return Envelope (Y|N(default))': 'N'
+                'Return Envelope (Y|N(default))': '9P'
             })
 
             # create function that updates output csv dict with variables in with
@@ -255,14 +258,21 @@ while True:
                 return
 
             sg.cprint('Parsing data and creating documents:')
+            window.refresh()
             # To merge csv contents with word template, create new docs, add lines to output csv
             with open(csv_file, newline='') as csvfile, open(output_csv, 'w', encoding='UTF8', newline='') as batch_output:
                 csvreader = csv.reader(csvfile)
+                csv_number = csv.reader(csvfile)
                 csvwriter = csv.DictWriter(batch_output, fieldnames=output_csv_header)
                 csvwriter.writeheader()
                 headers = []
                 doc_count = 1
+                row_is = 1
+                total_rows = [int() for i in csv_number]
                 for row in csvreader: 
+                    row_is += 1
+                    sg.OneLineProgressMeter('Writing: ', row_is, len(total_rows))
+                    window.refresh()
                     if not headers:
                         headers = row
                         continue
@@ -279,9 +289,10 @@ while True:
                         zip_index = headers.index(' Address 1 Zip')
                         nospace = row[last_name_index]
                         doc_id = f"{current_date}{initial_stem}{id_count:0>4}"
-                        pdf_name = f'{row[last_name_index]}_{nospace.replace(" ","")}_{order_count:0>3}.pdf'
-                        doc_name = f'{row[last_name_index]}_{nospace.replace(" ","")}_{order_count:0>3}.docx'
+                        pdf_name = f'{order_count:0>4}_{nospace.replace(" ","")}_{row[first_name_index]}.pdf'
+                        doc_name = f'{order_count:0>4}_{nospace.replace(" ","")}_{row[first_name_index]}.docx'
                         sg.cprint(f'Creating {doc_name}')
+                        window.refresh()
                         ## imwatchingyou.refresh_debugger()
                         generate_batch_row()
                         csvwriter.writerow(batch_column_dict.copy())
@@ -293,11 +304,6 @@ while True:
                             City=row[city_index],
                             State=row[state_index],
                             Zip=row[zip_index],
-                            Company=co_name,
-                            Co_Location=co_location,
-                            Contact=co_contact,
-                            Contact_Number=co_phone,
-                            Contact_Email=co_email
                         )
                         id_count += 1
                     document.write(f"{docx_folder_name}\{doc_name}")
@@ -306,7 +312,9 @@ while True:
                 
                 # docx2pdf convert folder of docx to other folder of pdf
                 sg.cprint('Converting to PDF:')
+                window.refresh()
                 convert(f"{docx_folder_name}/",f"{folder_name}/")
+                window.refresh()
                 sg.cprint('PDF conversion complete.')
                 ## imwatchingyou.refresh_debugger()
 
@@ -341,6 +349,7 @@ while True:
                 pass
             
             sg.cprint('Zipping folder for upload.')
+            window.refresh()
             ## imwatchingyou.refresh_debugger()
             # zips folder
             zip_file = f'{folder_name}.zip'
@@ -353,6 +362,7 @@ while True:
             sg.popup_ok('Files ready for upload.')
 
             sg.cprint('Uploading to Letterstream:')
+            window.refresh()
             ## imwatchingyou.refresh_debugger()
             # LetterStream API id/key:
             ## Your API_ID : dN26vwWd
@@ -379,9 +389,11 @@ while True:
             with open(zip_file, 'rb') as fileobj:
                 r = requests.post(url='https://www.letterstream.com/apis/index.php',data=auth_parameters, files={'multi_file': (zip_file, fileobj)})
                 print(r.status_code)
+                window.refresh()
                 ## imwatchingyou.refresh_debugger()
                 if "AUTHOK" in r.text:
                     print(r.text)
+                    window.refresh()
                     sg.popup_ok('Batch upload successful')
                     window['-FINISHED-'].update(visible=True)
                 elif not ("AUTHOK" in r.text):

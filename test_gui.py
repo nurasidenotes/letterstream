@@ -277,9 +277,10 @@ while True:
                         city_index = headers.index(' Address 1 City')
                         state_index = headers.index(' Address 1 State')
                         zip_index = headers.index(' Address 1 Zip')
+                        nospace = row[last_name_index]
                         doc_id = f"{current_date}{initial_stem}{id_count:0>4}"
-                        pdf_name = f'{row[last_name_index]}_{row[first_name_index]}_{order_count:0>3}.pdf'
-                        doc_name = f'{row[last_name_index]}_{row[first_name_index]}_{order_count:0>3}.docx'
+                        pdf_name = f'{row[last_name_index]}_{nospace.replace(" ","")}_{order_count:0>3}.pdf'
+                        doc_name = f'{row[last_name_index]}_{nospace.replace(" ","")}_{order_count:0>3}.docx'
                         sg.cprint(f'Creating {doc_name}')
                         ## imwatchingyou.refresh_debugger()
                         generate_batch_row()
@@ -390,3 +391,6 @@ while True:
 
 ## parse r.text to be legible -- json?
 ## executable package
+
+
+## 
