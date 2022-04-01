@@ -243,7 +243,7 @@ while True:
                 'Duplex (Y|N)': 'N', 
                 'Ink (B|C)': 'B', 
                 'Paper (W(hite-default)|Y(ellow)|LB(light blue)|LG(light green)|O(range)|I(vory)|PERF(orated)': 'W', 
-                'Return Envelope (Y|N(default))': '9P'
+                'Return Envelope (Y|N(default))': 'N'
             })
 
             # create function that updates output csv dict with variables in with
