@@ -134,7 +134,8 @@ while True:
             # offsite test:
             # contact_csv = 'CompanyContactsSAMPLE.csv'
 
-            sg.cprint('Creating Batch Folders')
+            sg.cprint('Creating Batch Folders...')
+            window.refresh()
             # To create directory (file) for word docs batch:
             if not os.path.exists(docx_folder_name):
                 os.mkdir(docx_folder_name)
@@ -144,6 +145,7 @@ while True:
                 os.mkdir(folder_name)
 
             sg.cprint('Consolidating previous orders')
+            window.refresh()
             #creates variable counter that saves with co as key to shelf "unique_id"
             id_count = ''
             s_key = f"{initial_stem}"
@@ -167,7 +169,8 @@ while True:
 
             # creates output header list
             output_csv_header = []
-            sg.cprint('Assigning static variables')
+            sg.cprint('Assigning static variables...')
+            window.refresh()
             # opens output template and pulls headers
             with open('Batch_Template.csv', newline='') as output_csv:
                 output_reader = csv.DictReader(output_csv)
@@ -294,7 +297,7 @@ while True:
                         state_index = headers.index(' Address 1 State')
                         zip_index = headers.index(' Address 1 Zip')
                         nospace = row[last_name_index]
-                        doc_id = f"{current_date}{initial_stem}{id_count:0>4}"
+                        doc_id = f"{current_date}_{initial_stem}{id_count:0>4}"
                         pdf_name = f'{order_count:0>4}_{nospace.replace(" ","")}_{row[first_name_index]}.pdf'
                         doc_name = f'{order_count:0>4}_{nospace.replace(" ","")}_{row[first_name_index]}.docx'
                         sg.cprint(f'Creating {doc_name}')
@@ -314,7 +317,6 @@ while True:
                         id_count += 1
                     document.write(f"{docx_folder_name}\{doc_name}")
                     ##MAC document.write(f"{docx_folder_name}/{doc_name}")
-
                     order_count += 1
                 
                 # docx2pdf convert folder of docx to other folder of pdf
@@ -323,6 +325,7 @@ while True:
                 convert(f"{docx_folder_name}/",f"{folder_name}/")
                 window.refresh()
                 sg.cprint('PDF conversion complete.')
+                window.refresh()
                 ## imwatchingyou.refresh_debugger()
 
 
@@ -334,6 +337,7 @@ while True:
             s.update(current_order_num)
             s.close()
 
+            ## hide when finally functional?
             clear_shelf = sg.popup_yes_no(f"Would you like to clear {company_name}'s document count?")
             clear_shelf_order = sg.popup_yes_no(f"Would you like to clear {company_name}'s order count?")
 
@@ -355,7 +359,7 @@ while True:
             else:
                 pass
             
-            sg.cprint('Zipping folder for upload.')
+            sg.cprint('Zipping folder for upload...')
             window.refresh()
             ## imwatchingyou.refresh_debugger()
             # zips folder
@@ -367,6 +371,7 @@ while True:
                     z.write(f, arcname=f.name,)
             
             sg.popup_ok('Files ready for upload.')
+            window.refresh()
 
             sg.cprint('Uploading to Letterstream:')
             window.refresh()
@@ -376,7 +381,8 @@ while True:
             ## Your API_KEY : TP6bKLpVFgqcrL2wrM
 
             # Authenticates letterstream api connection using random variables
-
+            sg.cprint('Authenticating user...')
+            window.refresh()
             api_id = 'dN26vwWd'
             api_key = 'TP6bKLpVFgqcrL2wrM'
             unique_id = f'{int(time.time_ns())}'[-18:]
@@ -392,7 +398,9 @@ while True:
                 't': unique_id,
                 'debug': '3'
             }
-
+            
+            sg.cprint('Sending .zip to Letterstream...')
+            window.refresh()
             with open(zip_file, 'rb') as fileobj:
                 r = requests.post(url='https://www.letterstream.com/apis/index.php',data=auth_parameters, files={'multi_file': (zip_file, fileobj)})
                 print(r.status_code)
@@ -401,7 +409,7 @@ while True:
                 if "AUTHOK" in r.text:
                     print(r.text)
                     window.refresh()
-                    sg.popup_ok('Batch upload successful')
+                    sg.popup_ok('Batch upload successful.')
                     window['-FINISHED-'].update(visible=True)
                 elif not ("AUTHOK" in r.text):
                     sg.popup_error('ERROR during upload')
