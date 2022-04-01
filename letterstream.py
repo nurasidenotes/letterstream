@@ -299,8 +299,8 @@ while True:
                         zip_index = headers.index(' Address 1 Zip')
                         nospace = row[last_name_index]
                         doc_id = f"{current_date}_{initial_stem}{id_count:0>4}"
-                        pdf_name = f'{row[last_name_index]}_{nospace.replace(" ","")}_{order_count:0>3}.pdf'
-                        doc_name = f'{row[last_name_index]}_{nospace.replace(" ","")}_{order_count:0>3}.docx'
+                        pdf_name = f'{row[first_name_index]}_{nospace.replace(" ","")}_{order_count:0>3}.pdf'
+                        doc_name = f'{row[first_name_index]}_{nospace.replace(" ","")}_{order_count:0>3}.docx'
                         sg.cprint(f'Creating {doc_name}')
                         window.refresh()
                         ## imwatchingyou.refresh_debugger()
