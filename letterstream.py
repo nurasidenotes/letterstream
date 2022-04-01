@@ -171,8 +171,9 @@ while True:
             output_csv_header = []
             sg.cprint('Assigning static variables...')
             window.refresh()
+            batchtemplatecsv = 'Batch_Template.csv'
             # opens output template and pulls headers
-            with open('Batch_Template.csv', newline='') as output_csv:
+            with open(batchtemplatecsv, newline='') as output_csv:
                 output_reader = csv.DictReader(output_csv)
                 output_csv_header = output_reader.fieldnames
                     
