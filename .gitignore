@@ -2,3 +2,7 @@ CompanyContacts.csv
 *.pdf
 .vscode/
 unique*
+venv/
+*.pyc
+Company_/
+
