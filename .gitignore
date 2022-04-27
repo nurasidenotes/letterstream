@@ -6,3 +6,7 @@ venv/
 *.pyc
 Company_/
 __pycache__/
+
+#pyinstaller -- executable files
+*.spec
+*.manifest
