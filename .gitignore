@@ -5,4 +5,4 @@ unique*
 venv/
 *.pyc
 Company_/
-
+__pycache__/
