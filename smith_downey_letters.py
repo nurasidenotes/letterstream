@@ -123,26 +123,8 @@ while True:
             file_stem = csv_file.split('.')[1]
             #file_stem = csv_file.split('.')[0]
             company_name, current_date = file_stem.split(' - ')[1:3]
-            docx_folder_name = f"{company_name}_{current_date}_'docx'"
-            folder_name = f"{company_name}_{current_date}"
-
-            # to create copmany initials object
+            # to create company initials object
             initial_stem = "".join(item[0].upper() for item in company_name.split())
-
-            # To create variable letter template from Company information
-            contact_csv = 'CompanyContacts.csv'
-            # offsite test:
-            # contact_csv = 'CompanyContactsSAMPLE.csv'
-
-            sg.cprint('Creating Batch Folders...')
-            window.refresh()
-            # To create directory (file) for word docs batch:
-            if not os.path.exists(docx_folder_name):
-                os.mkdir(docx_folder_name)
-
-            # To create directory (file) for full batch:
-            if not os.path.exists(folder_name):
-                os.mkdir(folder_name)
 
             sg.cprint('Consolidating previous orders')
             window.refresh()
@@ -167,6 +149,27 @@ while True:
 
             s.close()
 
+            
+            docx_folder_name = f"{company_name}_{current_date}_Batch{order_num:0>3}_'docx'"
+            folder_name = f"{company_name}_{current_date}_Batch{order_num:0>3}"
+
+            # To create variable letter template from Company information
+            contact_csv = 'CompanyContacts.csv'
+            # offsite test:
+            # contact_csv = 'CompanyContactsSAMPLE.csv'
+
+            sg.cprint('Creating Batch Folders...')
+            window.refresh()
+            # To create directory (file) for word docs batch:
+            sd_output_path = 'C:/Users/tophl/Documents/Smith&Downey_LetterStream_Output/'
+            if not os.path.exists(f'{sd_output_path}{docx_folder_name}'):
+                os.mkdir(f'{sd_output_path}{docx_folder_name}')
+
+            # To create directory (file) for full batch:
+            if not os.path.exists(f'{sd_output_path}{folder_name}'):
+                os.mkdir(f'{sd_output_path}{folder_name}')
+
+
             # creates output header list
             output_csv_header = []
             sg.cprint('Assigning static variables...')
@@ -177,7 +180,7 @@ while True:
                 output_csv_header = output_reader.fieldnames
                     
             # creates output csv variable object
-            output_csv = f"{folder_name}\{company_name}_Batch{order_num:0>3}_{current_date}.csv"
+            output_csv = f'{sd_output_path}{folder_name}\{company_name}_Batch{order_num:0>3}_{current_date}.csv'
             #mac output_csv = f"{folder_name}/{company_name}_Batch{order_num:0>3}_{current_date}.csv"
 
             # creates batch dictionary for csv output
@@ -248,6 +251,26 @@ while True:
                 'Paper (W(hite-default)|Y(ellow)|LB(light blue)|LG(light green)|O(range)|I(vory)|PERF(orated)': 'W', 
                 'Return Envelope (Y|N(default))': 'N'
             })
+            # create function that checks zip code for correct # of zeroes
+            def check_zip(zip):
+                new_zip = ''
+                if len(zip) < 5:
+                    if len(zip) == 4:
+                        new_zip = f'0{zip}'
+                        return new_zip
+                    elif len(zip) == 3:
+                        new_zip = f'00{zip}'
+                        return new_zip
+                    elif len(zip) == 2:
+                        new_zip = f'000{zip}'
+                        return new_zip
+                    elif len(zip) == 1:
+                        new_zip = f'0000{zip}'
+                        return new_zip
+                    else:
+                        return error('Zip code error.')
+                else:
+                    return f'{zip}'
 
             # create function that updates output csv dict with variables in with
             def generate_batch_row():
@@ -259,7 +282,7 @@ while True:
                     'RecipientAddr2': None,
                     'RecipientCity': f'{row[city_index]}',
                     'RecipientState': f'{row[state_index]}',
-                    'RecipientZip': f'{row[zip_index]}'
+                    'RecipientZip': zip_code
                 })
                 return
 
@@ -300,6 +323,8 @@ while True:
                         doc_id = f"{current_date}_{initial_stem}{id_count:0>4}"
                         pdf_name = f'{order_count:0>4}_{nospace.replace(" ","")}_{row[first_name_index]}.pdf'
                         doc_name = f'{order_count:0>4}_{nospace.replace(" ","")}_{row[first_name_index]}.docx'
+                        zip_check = row[zip_index]
+                        zip_code = check_zip(zip_check)
                         sg.cprint(f'Creating {doc_name}')
                         window.refresh()
                         ## imwatchingyou.refresh_debugger()
@@ -312,17 +337,17 @@ while True:
                             Address=row[address_index],
                             City=row[city_index],
                             State=row[state_index],
-                            Zip=row[zip_index],
+                            Zip=zip_code,
                         )
                         id_count += 1
-                    document.write(f"{docx_folder_name}\{doc_name}")
+                    document.write(f'{sd_output_path}{docx_folder_name}\{doc_name}')
                     ##MAC document.write(f"{docx_folder_name}/{doc_name}")
                     order_count += 1
                 
                 # docx2pdf convert folder of docx to other folder of pdf
-                sg.cprint('Converting to PDF:')
+                sg.cprint('Converting to PDF: please open Word')
                 window.refresh()
-                convert(f"{docx_folder_name}/",f"{folder_name}/")
+                convert(f'{sd_output_path}{docx_folder_name}/',f'{sd_output_path}{folder_name}/')
                 window.refresh()
                 sg.cprint('PDF conversion complete.')
                 window.refresh()
@@ -363,8 +388,8 @@ while True:
             window.refresh()
             ## imwatchingyou.refresh_debugger()
             # zips folder
-            zip_file = f'{folder_name}.zip'
-            zip_directory = pathlib.Path(f'{folder_name}/')
+            zip_file = f'{sd_output_path}{folder_name}.zip'
+            zip_directory = pathlib.Path(f'{sd_output_path}{folder_name}/')
 
             with zipfile.ZipFile(zip_file, 'w', ZIP_DEFLATED, allowZip64=True) as z:
                 for f in zip_directory.iterdir():

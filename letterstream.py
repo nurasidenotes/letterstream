@@ -249,6 +249,27 @@ while True:
                 'Paper (W(hite-default)|Y(ellow)|LB(light blue)|LG(light green)|O(range)|I(vory)|PERF(orated)': 'W', 
                 'Return Envelope (Y|N(default))': 'N'
             })
+            
+            # create function that checks zip code for correct # of zeroes
+            def check_zip(zip):
+                new_zip = ''
+                if len(zip) < 5:
+                    if len(zip) == 4:
+                        new_zip = f'0{zip}'
+                        return new_zip
+                    elif len(zip) == 3:
+                        new_zip = f'00{zip}'
+                        return new_zip
+                    elif len(zip) == 2:
+                        new_zip = f'000{zip}'
+                        return new_zip
+                    elif len(zip) == 1:
+                        new_zip = f'0000{zip}'
+                        return new_zip
+                    else:
+                        return error('Zip code error.')
+                else:
+                    return f'{zip}'
 
             # create function that updates output csv dict with variables in with
             def generate_batch_row():
@@ -260,7 +281,7 @@ while True:
                     'RecipientAddr2': None,
                     'RecipientCity': f'{row[city_index]}',
                     'RecipientState': f'{row[state_index]}',
-                    'RecipientZip': f'{row[zip_index]}'
+                    'RecipientZip': zip_code
                 })
                 return
 
@@ -299,11 +320,15 @@ while True:
                         zip_index = headers.index(' Address 1 Zip')
                         nospace = row[last_name_index]
                         doc_id = f"{current_date}_{initial_stem}{id_count:0>4}"
-                        pdf_name = f'{row[last_name_index]}_{nospace.replace(" ","")}_{order_count:0>3}.pdf'
-                        doc_name = f'{row[last_name_index]}_{nospace.replace(" ","")}_{order_count:0>3}.docx'
+                        pdf_name = f'{order_count:0>4}_{nospace.replace(" ","")}_{row[first_name_index]}.pdf'
+                        doc_name = f'{order_count:0>4}_{nospace.replace(" ","")}_{row[first_name_index]}.docx'
+                        zip_check = row[zip_index]
+                        zip_code = check_zip(zip_check)
                         sg.cprint(f'Creating {doc_name}')
                         window.refresh()
                         ## imwatchingyou.refresh_debugger()
+                        zip_check = row[zip_index]
+                        zip_code = check_zip(zip_check)
                         generate_batch_row()
                         csvwriter.writerow(batch_column_dict.copy())
                         document = MailMerge(template)
@@ -313,7 +338,7 @@ while True:
                             Address=row[address_index],
                             City=row[city_index],
                             State=row[state_index],
-                            Zip=row[zip_index],
+                            Zip=zip_code,
                             Company=co_name,
                             Co_Location=co_location,
                             Contact=co_contact,

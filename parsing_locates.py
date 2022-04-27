@@ -30,7 +30,7 @@ import sys
 
 template = "single_locate.docx"
         
-csv_file = 'Batch - The Ryding Company - 03-24-2022 - Appended by EmployeeLocator.csv'
+csv_file = 'Batch - Fulton Financial - 04-01-2022 - Appended by EmployeeLocator.csv'
 
 # to parse csv file name into parts
 file_stem = csv_file.split('.')[0]
@@ -54,7 +54,7 @@ def get_phone_types(row, index1, index2, index3):
     indices = [index1, index2, index3]
     return [transform.get(row[index], '') for index in indices]
 
-
+name_count = 1
 
 # To merge csv contents with word template, create new docs, add lines to output csv
 with open(csv_file, newline='') as csvfile:
@@ -143,5 +143,6 @@ with open(csv_file, newline='') as csvfile:
                 email_03=row[email_03_index],
                 eseen_03=row[eseen_03_index],
             )
-        document.write(f"{docx_folder_name}\Locate - {company_name} - {row[last_name_index]} - {current_date}.docx")
+        document.write(f"{docx_folder_name}\Locate - {company_name} - {name_count:0>3} - {row[last_name_index]} - {current_date}.docx")
              # directory path only works on windows; change for mac
+        name_count += 1
