@@ -289,6 +289,11 @@ while True:
                 csv_number = csv.reader(csvnumber)
                 data = [row for row in csv_number]
                 total_rows = len(data)
+            
+            def prep_last_name(name):
+                nospace = name.replace(' ','')
+                no_apostrophe = nospace.replace('\'','')
+                return no_apostrophe
 
             sg.cprint('Parsing data and creating documents:')
             window.refresh()
@@ -312,16 +317,16 @@ while True:
                     if not row[headers.index(' Address 1')]:
                         continue
                     else:
-                        first_name_index = headers.index(' First Name')
-                        last_name_index = headers.index(' Last Name')
+                        first_name_index = headers.index('First Name')
+                        last_name_index = headers.index('Last Name')
                         address_index = headers.index(' Address 1')
                         city_index = headers.index(' Address 1 City')
                         state_index = headers.index(' Address 1 State')
                         zip_index = headers.index(' Address 1 Zip')
-                        nospace = row[last_name_index]
+                        last_name = prep_last_name(row[last_name_index])
                         doc_id = f"{current_date}_{initial_stem}{id_count:0>4}"
-                        pdf_name = f'{order_count:0>4}_{nospace.replace(" ","")}_{row[first_name_index]}.pdf'
-                        doc_name = f'{order_count:0>4}_{nospace.replace(" ","")}_{row[first_name_index]}.docx'
+                        pdf_name = f'{order_count:0>3}_{last_name}_{row[first_name_index]}.pdf'
+                        doc_name = f'{order_count:0>3}_{last_name}_{row[first_name_index]}.docx'
                         zip_check = row[zip_index]
                         zip_code = check_zip(zip_check)
                         sg.cprint(f'Creating {doc_name}')
