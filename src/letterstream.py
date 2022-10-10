@@ -1,7 +1,8 @@
-# img_viewer.py
+
 from __future__ import print_function
 from distutils.log import error
 import pathlib
+from platform import mac_ver, win32_ver
 from tkinter import HORIZONTAL
 from tokenize import Triple
 from turtle import update
@@ -27,9 +28,10 @@ import sys
 
 import PySimpleGUI as sg
 import os.path
-import imwatchingyou
 
-template = "LetterForwardingTemplate.docx"
+from letterstream_app import set_company_vars, set_csv_out_headers
+from shell import create_auth_params
+
 
 # First the window layout
 mail_type = ['First Class', 'Certified', 'Signature']
@@ -39,7 +41,6 @@ mt_cert = 'Certified'
 mt_sig = 'Signature'
 mail_type_input = None
 
-## imwatchingyou.show_debugger_window()
 
 file_list = [
     [
@@ -118,31 +119,36 @@ while True:
             window['-RUNNING-'].update(visible=True)
             sg.cprint('Parsing CSV data...')
             window.refresh()
-            ## imwatchingyou.refresh_debugger()
 
-            file_stem = csv_file.split('.')[1]
-            #file_stem = csv_file.split('.')[0]
-            company_name, current_date = file_stem.split(' - ')[1:3]
-            docx_folder_name = f"{company_name}_{current_date}_'docx'"
-            folder_name = f"{company_name}_{current_date}"
+            dir_path = os.path.dirname(os.path.realpath(__file__))
+            file_stem = csv_file.split('.')[0]
+            company_name, batch_date = file_stem.split(' - ')[1:3]
+            docx_folder_name = f"{company_name}_{batch_date}_'docx'"
+            folder_name = f"{company_name}_{batch_date}"
+            path = os.path.abspath(os.getcwd())
 
             # to create copmany initials object
             initial_stem = "".join(item[0].upper() for item in company_name.split())
 
             # To create variable letter template from Company information
-            contact_csv = 'CompanyContacts.csv'
-            # offsite test:
-            # contact_csv = 'CompanyContactsSAMPLE.csv'
+            contact_csv = os.path.join(dir_path, 'CompanyContacts.csv')
 
+            # Assigns template
+            template = os.path.join(dir_path, "LetterForwardingTemplate.docx")
+
+            #output_path = os.path.dirname()
             sg.cprint('Creating Batch Folders...')
             window.refresh()
             # To create directory (file) for word docs batch:
-            if not os.path.exists(docx_folder_name):
-                os.mkdir(docx_folder_name)
+            docx_directory = os.path.join(path, docx_folder_name)
+            if not os.path.exists(docx_directory):
+                os.mkdir(docx_directory)
+            
 
             # To create directory (file) for full batch:
-            if not os.path.exists(folder_name):
-                os.mkdir(folder_name)
+            folder = os.path.join(path, folder_name)
+            if not os.path.exists(folder):
+                os.mkdir(folder)
 
             sg.cprint('Consolidating previous orders...')
             window.refresh()
@@ -167,60 +173,50 @@ while True:
 
             s.close()
 
-            # creates output header list
-            output_csv_header = []
+            # # creates output header list
+            # output_csv_header = []
             sg.cprint('Assigning static variables...')
             window.refresh()
+            output_csv_header = set_csv_out_headers()
             # opens output template and pulls headers
-            with open('Batch_Template.csv', newline='') as output_csv:
-                output_reader = csv.DictReader(output_csv)
-                output_csv_header = output_reader.fieldnames
+            # with open('Batch_Template.csv', newline='') as output_csv:
+            #     output_reader = csv.DictReader(output_csv)
+            #     output_csv_header = output_reader.fieldnames
                     
-            # creates output csv variable object
-            output_csv = f"{folder_name}\{company_name}_Batch{order_num:0>3}_{current_date}.csv"
-
+            # creates output csv in output folder
+            output_csv = os.path.join(folder, f'{company_name}_Batch{order_num:0>3}_{batch_date}.csv')
 
             # creates batch dictionary for csv output
             batch_column_dict = dict.fromkeys(output_csv_header , None)
 
-
-            # company variables 
-            # 'Company', 'Location', 'Contact', 'Phone', 'Email', 'Return Contact', 'Address 01', 'Address 02', 'City', 'State', 'Zip'
-            co_name = ''
-            co_location = ''
-            co_contact = ''
-            co_phone = ''
-            co_email = ''
-            co_return = ''
-            co_address_01 = ''
-            co_address_02 = ''
-            co_city = ''
-            co_state = ''
-            co_zip = ''
+            #function that takes company input and creates a dict 
+            def set_company_vars(company_csv):
+                company_dict = {
+                    'co_name': company_csv['Company'],
+                    'co_location' : company_csv['Location'],
+                    'co_contact' : company_csv['Contact'],
+                    'co_phone' : company_csv['Phone'],
+                    'co_email' : company_csv['Email'],
+                    'co_return' : company_csv['Return Contact'],
+                    'co_address_01' : company_csv['Address 01'],
+                    'co_address_02' : company_csv['Address 02'],
+                    'co_city' : company_csv['City'],
+                    'co_state' : company_csv['State'],
+                    'co_zip' : company_csv['Zip']
+                }
+                return company_dict
 
             # set company variables based on contact_csv
-            with open(contact_csv, newline='') as csvfile:
-                csvreader = csv.reader(csvfile)
-                headers = []
+            with open(contact_csv, newline='') as companycsv:
+                csvreader = csv.DictReader(companycsv)
                 for row in csvreader: 
-                    if not headers:
-                        headers = row
+                    if row['Company'] != company_name:
                         continue
-                    if row[headers.index('Company')] == company_name:
-                        co_name = row[headers.index('Company')]
-                        co_location = row[headers.index('Location')]
-                        co_contact = row[headers.index('Contact')]
-                        co_phone = row[headers.index('Phone')]
-                        co_email = row[headers.index('Email')]
-                        co_return = row[headers.index('Return Contact')]
-                        co_address_01 = row[headers.index('Address 01')]
-                        co_address_02 = row[headers.index('Address 02')]
-                        co_city = row[headers.index('City')]
-                        co_state = row[headers.index('State')]
-                        co_zip = row[headers.index('Zip')]
+                    elif row['Company'] == company_name:
+                        company_dict = set_company_vars(row)
                         break
+
             
-            ## imwatchingyou.refresh_debugger()
             sg.cprint('Setting Mail Type')
             window.refresh()
             # sets mail type for batch
@@ -235,12 +231,12 @@ while True:
             # sets static company/batch variables to output csv dict
             batch_column_dict.update({
                 'SenderName1': f'{company_name}',
-                'SenderName2': f'Attn: {co_return}',
-                'SenderAddr1': f'{co_address_01}',
-                'SenderAddr2': f'{co_address_02}',
-                'SenderCity': f'{co_city}', 
-                'SenderState': f'{co_state}', 
-                'SenderZip': f'{co_zip}', 
+                'SenderName2': 'Attn: {}'.format(company_dict['co_contact']),
+                'SenderAddr1': company_dict['co_address_01'],
+                'SenderAddr2': company_dict['co_address_02'],
+                'SenderCity': company_dict['co_city'], 
+                'SenderState': company_dict['co_state'], 
+                'SenderZip': company_dict['co_zip'], 
                 'PageCount': '1', 
                 'MailType (firstclass|certified|postcard|flat)': f'{mail_type_input}', 
                 'CoverSheet (Y|N)': 'Y', 
@@ -309,24 +305,23 @@ while True:
                         continue
                     if not row[0]:
                         continue
-                    if not row[headers.index(' Address 1')]:
+                    if not row[headers.index('Address 1')]:
                         continue
                     else:
-                        first_name_index = headers.index(' First Name')
-                        last_name_index = headers.index(' Last Name')
-                        address_index = headers.index(' Address 1')
-                        city_index = headers.index(' Address 1 City')
-                        state_index = headers.index(' Address 1 State')
-                        zip_index = headers.index(' Address 1 Zip')
+                        first_name_index = headers.index('First Name')
+                        last_name_index = headers.index('Last Name')
+                        address_index = headers.index('Address 1')
+                        city_index = headers.index('Address 1 City')
+                        state_index = headers.index('Address 1 State')
+                        zip_index = headers.index('Address 1 Zip')
                         nospace = row[last_name_index]
-                        doc_id = f"{current_date}_{initial_stem}{id_count:0>4}"
+                        doc_id = f"{batch_date}_{initial_stem}{id_count:0>4}"
                         pdf_name = f'{order_count:0>4}_{nospace.replace(" ","")}_{row[first_name_index]}.pdf'
                         doc_name = f'{order_count:0>4}_{nospace.replace(" ","")}_{row[first_name_index]}.docx'
                         zip_check = row[zip_index]
                         zip_code = check_zip(zip_check)
                         sg.cprint(f'Creating {doc_name}')
                         window.refresh()
-                        ## imwatchingyou.refresh_debugger()
                         zip_check = row[zip_index]
                         zip_code = check_zip(zip_check)
                         generate_batch_row()
@@ -339,25 +334,24 @@ while True:
                             City=row[city_index],
                             State=row[state_index],
                             Zip=zip_code,
-                            Company=co_name,
-                            Co_Location=co_location,
-                            Contact=co_contact,
-                            Contact_Number=co_phone,
-                            Contact_Email=co_email
+                            Company=company_dict['co_name'],
+                            Co_Location=company_dict['co_location'],
+                            Contact=company_dict['co_contact'],
+                            Contact_Number=company_dict['co_phone'],
+                            Contact_Email=company_dict['co_email']
                         )
                         id_count += 1
-                    document.write(f"{docx_folder_name}\{doc_name}")
+                    document.write(f"{docx_directory}/{doc_name}")
                     ##MAC document.write(f"{docx_folder_name}/{doc_name}")
                     order_count += 1
                 
                 # docx2pdf convert folder of docx to other folder of pdf
                 sg.cprint('Converting to PDF:')
                 window.refresh()
-                convert(f"{docx_folder_name}/",f"{folder_name}/")
+                convert(docx_directory,folder)
                 window.refresh()
                 sg.cprint('PDF conversion complete.')
                 window.refresh()
-                ## imwatchingyou.refresh_debugger()
 
 
             # outputs last id_count number to dict that saves to shelf
@@ -392,7 +386,7 @@ while True:
             
             sg.cprint('Zipping folder for upload...')
             window.refresh()
-            ## imwatchingyou.refresh_debugger()
+
             # zips folder
             zip_file = f'{folder_name}.zip'
             zip_directory = pathlib.Path(f'{folder_name}/')
@@ -406,7 +400,6 @@ while True:
 
             sg.cprint('Uploading to Letterstream:')
             window.refresh()
-            ## imwatchingyou.refresh_debugger()
             # LetterStream API id/key:
             ## Your API_ID : dN26vwWd
             ## Your API_KEY : TP6bKLpVFgqcrL2wrM
@@ -414,28 +407,28 @@ while True:
             # Authenticates letterstream api connection using random variables
             sg.cprint('Authenticating user...')
             window.refresh()
-            api_id = 'dN26vwWd'
-            api_key = 'TP6bKLpVFgqcrL2wrM'
-            unique_id = f'{int(time.time_ns())}'[-18:]
-            string_to_hash = (unique_id[-6:] + api_key + unique_id[0:6])
+            # api_id = 'dN26vwWd'
+            # api_key = 'TP6bKLpVFgqcrL2wrM'
+            # unique_id = f'{int(time.time_ns())}'[-18:]
+            # string_to_hash = (unique_id[-6:] + api_key + unique_id[0:6])
 
-            encoded_string = base64.b64encode(string_to_hash.encode('ascii'))
-            api_hash = hashlib.md5(encoded_string)
-            hash_two = api_hash.hexdigest()
+            # encoded_string = base64.b64encode(string_to_hash.encode('ascii'))
+            # api_hash = hashlib.md5(encoded_string)
+            # hash_two = api_hash.hexdigest()
 
-            auth_parameters = {
-                'a': api_id,
-                'h': hash_two,
-                't': unique_id,
-                'debug': '3'
-            }
+            # auth_parameters = {
+            #     'a': api_id,
+            #     'h': hash_two,
+            #     't': unique_id,
+            #     'debug': '3'
+            # }
+            auth_parameters = create_auth_params()
             
             sg.cprint('Sending .zip to Letterstream...')
             window.refresh()
             with open(zip_file, 'rb') as fileobj:
                 r = requests.post(url='https://www.letterstream.com/apis/index.php',data=auth_parameters, files={'multi_file': (zip_file, fileobj)})
                 print(r.status_code)
-                ## imwatchingyou.refresh_debugger()
                 if "AUTHOK" in r.text:
                     print(r.text)
                     window.refresh()

@@ -1,4 +1,3 @@
-CompanyContacts.csv
 *.pdf
 .vscode/
 unique*
@@ -10,3 +9,12 @@ __pycache__/
 #pyinstaller -- executable files
 *.spec
 *.manifest
+
+test/CSVwritertest.py
+test/test_gui.py
+test/tester.py
+src/company_contacts_update.py
+src/gui_debugger.py
+src/recipient_app.py
+src/shell.py
+src/single_locate.docx
