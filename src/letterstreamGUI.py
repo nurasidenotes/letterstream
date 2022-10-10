@@ -117,4 +117,3 @@ while True:
             window['-RUNNING-'].update(visible=True)
             sg.cprint('Parsing CSV data...')
             window.refresh()
-            ## imwatchingyou.refresh_debugger()

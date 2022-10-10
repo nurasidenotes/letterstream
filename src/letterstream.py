@@ -3,6 +3,7 @@ from __future__ import print_function
 from distutils.log import error
 import pathlib
 from platform import mac_ver, win32_ver
+import shutil
 from tkinter import HORIZONTAL
 from tokenize import Triple
 from turtle import update
@@ -85,8 +86,13 @@ window = sg.Window('LetterStream API', layout, resizable=True)
 # Run the Event Loop
 while True:
     event, values = window.read()
-    ## imwatchingyou.refresh_debugger()
+    # Creates temp dir for running
+    path = os.path.abspath(os.getcwd())
+    temp_dir = os.path.join(path, 'tmp')
+    if not os.path.exists(temp_dir):
+        os.mkdir(temp_dir)
     if event in (sg.WIN_CLOSED, 'Exit', '-CANCEL-', '-IN PROG CANCEL-', '-FINISHED-'):
+        shutil.rmtree(temp_dir)
         break
     # file was selected, set csv in to selected file
     if event == "-CSV IN-":
@@ -100,8 +106,9 @@ while True:
         window['-START-'].update(visible = False)
         window.refresh()
         if not csv_file:
-            sg.popup_ok_cancel('No CSV selected. Please selected batch to run.')
+            sg.popup_ok_cancel('No CSV selected. Please select a batch to run.')
             if event == 'Cancel':
+                shutil.rmtree(temp_dir)
                 break
             if event == 'Ok':
                 window['-START-'].update(visible=True)
@@ -110,6 +117,7 @@ while True:
         if not mail_type_input:
             sg.popup_ok_cancel('No mail type selected. Please select mail type before proceeding')
             if event == 'Cancel':
+                shutil.rmtree(temp_dir)
                 break
             if event == 'Ok':
                 window['-START-'].update(visible=True)
@@ -125,7 +133,6 @@ while True:
             company_name, batch_date = file_stem.split(' - ')[1:3]
             docx_folder_name = f"{company_name}_{batch_date}_'docx'"
             folder_name = f"{company_name}_{batch_date}"
-            path = os.path.abspath(os.getcwd())
 
             # to create copmany initials object
             initial_stem = "".join(item[0].upper() for item in company_name.split())
@@ -136,17 +143,21 @@ while True:
             # Assigns template
             template = os.path.join(dir_path, "LetterForwardingTemplate.docx")
 
+            # Creates temp dir for running
+            temp_dir = os.path.join(path, 'tmp')
+            if not os.path.exists(temp_dir):
+                os.mkdir(temp_dir)
+
             #output_path = os.path.dirname()
             sg.cprint('Creating Batch Folders...')
             window.refresh()
             # To create directory (file) for word docs batch:
-            docx_directory = os.path.join(path, docx_folder_name)
+            docx_directory = os.path.join(temp_dir, docx_folder_name)
             if not os.path.exists(docx_directory):
                 os.mkdir(docx_directory)
-            
 
             # To create directory (file) for full batch:
-            folder = os.path.join(path, folder_name)
+            folder = os.path.join(temp_dir, folder_name)
             if not os.path.exists(folder):
                 os.mkdir(folder)
 
@@ -363,33 +374,33 @@ while True:
             s.close()
 
             ## hide when executable?
-            clear_shelf = sg.popup_yes_no(f"Would you like to clear {company_name}'s document count?")
-            clear_shelf_order = sg.popup_yes_no(f"Would you like to clear {company_name}'s order count?")
+            #clear_shelf = sg.popup_yes_no(f"Would you like to clear {company_name}'s document count?")
+            #clear_shelf_order = sg.popup_yes_no(f"Would you like to clear {company_name}'s order count?")
 
             # #  clears current company's letterstream id_count, if requested
             ## clear_shelf = input(f'Clear {company_name} LetterStream count? y/n: ')
-            if clear_shelf == 'Yes':
-                s=shelve.open("unique_id")
-                s.pop(s_key)
-                s.close()
-            else:
-                pass
+            # if clear_shelf == 'Yes':
+            #     s=shelve.open("unique_id")
+            #     s.pop(s_key)
+            #     s.close()
+            # else:
+            #     pass
 
             # #  clears current company's letterstream id_count, if requested
             ##clear_shelf_order = input(f'Clear {company_name} order count? y/n: ')
-            if clear_shelf_order == 'Yes':
-                s=shelve.open("unique_id")
-                s.pop(s_order_key)
-                s.close()
-            else:
-                pass
+            # if clear_shelf_order == 'Yes':
+            #     s=shelve.open("unique_id")
+            #     s.pop(s_order_key)
+            #     s.close()
+            # else:
+            #     pass
             
             sg.cprint('Zipping folder for upload...')
             window.refresh()
 
             # zips folder
             zip_file = f'{folder_name}.zip'
-            zip_directory = pathlib.Path(f'{folder_name}/')
+            zip_directory = pathlib.Path(folder)
 
             with zipfile.ZipFile(zip_file, 'w', ZIP_DEFLATED, allowZip64=True) as z:
                 for f in zip_directory.iterdir():
@@ -400,28 +411,11 @@ while True:
 
             sg.cprint('Uploading to Letterstream:')
             window.refresh()
-            # LetterStream API id/key:
-            ## Your API_ID : dN26vwWd
-            ## Your API_KEY : TP6bKLpVFgqcrL2wrM
 
             # Authenticates letterstream api connection using random variables
             sg.cprint('Authenticating user...')
             window.refresh()
-            # api_id = 'dN26vwWd'
-            # api_key = 'TP6bKLpVFgqcrL2wrM'
-            # unique_id = f'{int(time.time_ns())}'[-18:]
-            # string_to_hash = (unique_id[-6:] + api_key + unique_id[0:6])
 
-            # encoded_string = base64.b64encode(string_to_hash.encode('ascii'))
-            # api_hash = hashlib.md5(encoded_string)
-            # hash_two = api_hash.hexdigest()
-
-            # auth_parameters = {
-            #     'a': api_id,
-            #     'h': hash_two,
-            #     't': unique_id,
-            #     'debug': '3'
-            # }
             auth_parameters = create_auth_params()
             
             sg.cprint('Sending .zip to Letterstream...')

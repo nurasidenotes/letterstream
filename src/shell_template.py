@@ -1,11 +1,17 @@
+'''
+MOCK API KEY SHELL
+Copy and paste below template into src/shell.py file. 
+shell.py is in .gitignore and must be localized.
+'''
+
 import base64
 import hashlib
 import time
 
 #Letterstream API Key + hash based on LetterStream API reqs FOR TESTING
 
-api_id = 'pM73xqQl'
-api_key = 'LD0cWJySLgfnsK4dfB'
+api_id = 'dN26vwWd'
+api_key = 'TP6bKLpVFgqcrL2wrM'
 
 def set_unique_id():
     unique_id = f'{int(time.time_ns())}'[-18:]

@@ -6,29 +6,35 @@ Letterstream: Opens a GUI with a file browser and a drop down menu to choose mai
 
 Public test version; executable package has sample 'authentication' for API and runs through mock API enpoints, returning the same messages.
 
+Still under development; letterstream.py is being broken down into letterstream_app.py and letterstream_GUI.py
+
 ## Directory Structure
 ```
 README.md
 requirements.txt
 src/
  letterstream.py
+ letterstream_app.py
+ letterstream_GUI.py
+ shell_template.py
  Batch_Template.csv
  LetterForwardingTemplate.docx
  CompanyContacts.csv
 test/
- test_letterstream.py
+ *test_letterstream.py
 datasets/
  Batch - Company - date - Appended by EmployeeLocator.csv
- LetterstreamAPI.pdf
+ Letter Streaming API Documentation.pdf
 ```
 All source code is in the `src/` directory. Tests are in the `test/` directory. There is one test file per source code file, and the test file name format is `<source file name>_test`.py.
 
-## Running Executable
-This project is available to download as an executable package.
+## Running Executable -- NOT YET RUNNING ON MAC
+This project will be available to download as an executable package.
 
-1. Download 'LetterstreamApp' package
-2. Download datasets/* from directory 
-3. Open 
+1. Download `LetterForwardingApp` package
+2. Download `datasets/*` from directory 
+3. Open App, select Batch csv from datasets
+4. Run
 
 ## Getting started for local development
 This project is written with python3. 
@@ -57,11 +63,11 @@ pip3 install requirements.txt
 ```
 python3 src/letterstream.py
 ```
-6. Input Batch - Company - Date - Appended by EmployeeLocator.csv from /datasets.
-7. Press 'Upload Batch'
+6. Input Batch - Company - Date - Appended by EmployeeLocator.csv from `/datasets`.
+7. Press `Upload Batch`
 8. Follow prompts.
 
-## Running tests
+## Running tests -- UNIT TESTS OFFLINE
 To run all tests, activate the virtual environment and run the following from the repo root directory.
 ```
 python3 -m pytest
