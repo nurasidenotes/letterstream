@@ -1,11 +1,18 @@
-CompanyContacts.csv
+resources/db/*
 *.pdf
 .vscode/
-unique*
 venv/
 *.pyc
 Company_/
 __pycache__/
+Output/
+temp/
+src/nok_temp/*
+
+#shelf
+*.bak
+*.dat
+*.dir
 
 #pyinstaller -- executable files
 *.spec
